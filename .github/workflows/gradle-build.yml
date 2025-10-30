@@ -8,6 +8,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -20,7 +21,7 @@ jobs:
 
       - name: Try make gradlew executable (ignore if missing)
         run: |
-          chmod +x ./gradlew || echo "gradlew missing, continuing without wrapper"
+          chmod +x ./gradlew || echo "gradlew missing, continuing"
 
       - name: Build (use gradlew if present, otherwise install gradle and use it)
         run: |
@@ -40,20 +41,25 @@ jobs:
           echo "=== Searching for JARs ==="
           find . -type f -name "*.jar" -print || true
 
-      - name: Find first built jar
+      - name: Find first built jar and set env
         id: findjar
         run: |
           J=$(find . -type f -name "*.jar" | head -n 1 || true)
-          echo "FOUND_JAR=$J"
-          echo "FOUND_JAR=$J" >> $GITHUB_ENV
+          if [ -n "$J" ]; then
+            echo "FOUND_JAR=$J" >> $GITHUB_ENV
+            echo "Found jar: $J"
+          else
+            echo "FOUND_JAR=" >> $GITHUB_ENV
+            echo "No jar found"
+          fi
 
       - name: Upload Compiled Jar (if found)
-        if: env.FOUND_JAR != ''
+        if: ${{ env.FOUND_JAR != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: KrisWare-Compiled
           path: ${{ env.FOUND_JAR }}
 
       - name: Warn if nothing built
-        if: env.FOUND_JAR == ''
+        if: ${{ env.FOUND_JAR == '' }}
         run: echo "Warning: No jar produced. Check build logs for failures."

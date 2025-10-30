@@ -1,11 +1,8 @@
-name: Build KrisWare
 
+name: Build KrisWare
 on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
   workflow_dispatch:
+  push:
 
 jobs:
   build:
@@ -18,28 +15,22 @@ jobs:
     - name: Set up JDK 21
       uses: actions/setup-java@v4
       with:
-        distribution: temurin
-        java-version: 21
+        java-version: '21'
+        distribution: 'temurin'
 
-    - name: Give Gradle permission
-      run: chmod +x ./gradlew || echo "No gradlew file found"
+    - name: Make gradlew executable
+      run: chmod +x gradlew
 
-    - name: Build all modules
+    - name: Build Jar
+      run: ./gradlew clean build shadowJar || ./gradlew clean build
+
+    - name: Find built JAR
+      id: findjar
       run: |
-        if [ -f "./gradlew" ]; then
-          ./gradlew clean build --no-daemon || true
-        else
-          echo "gradlew not found, initializing gradle..."
-          gradle init || true
-          gradle build || true
-        fi
+        echo "JAR_PATH=$(find . -name '*.jar' | head -n 1)" >> $GITHUB_ENV
 
-    - name: List built files
-      run: ls -R build/libs || echo "No build/libs folder found"
-
-    - name: Upload compiled jars
+    - name: Upload Compiled Jar
       uses: actions/upload-artifact@v4
       with:
-        name: KrisWare-compiled
-        path: '**/build/libs/*.jar'
-        if-no-files-found: warn
+        name: KrisWare-Compiled
+        path: ${{ env.JAR_PATH }}
